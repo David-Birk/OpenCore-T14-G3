@@ -87,11 +87,28 @@ Tahoe also keeps the userspace drivers (`…MTLDriver`, `…GLDriver`) only in t
 
 **Still open:** the impostor's `descriptorPrivate` layout fixes were written for Monterey (12.5) drivers. The 11.0 driver may read those structs at different offsets. That shows up only when the first pipeline or texture is created.
 
+## Result 4: WhateverXe is the blocker, not the Apple drivers
+
+WhateverXe (`adl-p`) is qualified for exactly one kernel, Big Sur 20G1443 (`Darwin Kernel Version 20.6.0 … xnu-7195.141.49.702.12~1`):
+- `XE::selectProfile`: the ADL-N/ADL-P Display13 path sets `adlnKernelReady` only on that exact version string. **On Tahoe it fails closed and does nothing for 46A8.** The TGL path also accepts only 20A2314a/20G1443 kernels.
+- Lilu plugin range is `BigSur`–`BigSur`; on Tahoe it loads only with `-wexbeta`.
+- Further 20G1443-only fixes that check exact kernel bytes or versions: MMIO uncached mapping (`pmap_enter_options`/`IOProtectCacheMode` byte patterns, ADL-P BAR/PAT), GPU hang recovery (`-disablegfxfirmware` path), the `hwSaveNVRAM` vtable fix.
+- All 10 private kernel symbols it resolves still exist in Tahoe 26.7.1.
+
+**Gap in the vtable analysis.** Checking subclass vtables does not cover virtual calls the TGL kexts make on kernel objects they only *use*. Example: the framebuffer's `hwSaveNVRAM` calls `IODTPlatformExpert` through `+0x9F8`. On 20G1443 and Tahoe `writeNVRAMProperty` sits at `+0x9E8`, so WhateverXe rewrites the call. That fix is needed on Tahoe too, but WhateverXe applies it only on 20G1443. Other such calls (e.g. into `IOPCIDevice`, `IOMemoryDescriptor`, `IOWorkLoop`) are unchecked.
+
+→ The Tahoe port needs a **Tahoe kernel path in WhateverXe**: qualify 25G241 in `selectProfile`, re-derive each kernel byte pattern against the 25G241 kernel, port the NVRAM slot fix, and audit virtual calls into non-subclassed kernel classes.
+
+OCLP side prepared on local branch `tahoe-adlp` of the b00t0x OCLP fork: adds `0x46A8`, qualifies 25G241, and installs the kexts plus the patched Metal driver and impostor from a new payload folder `11.0 20A2314a-25`. **Do not install until WhateverXe has a Tahoe path.**
+
 ## Next steps
 - [x] `sudo tools/link-test.sh`: the stock kext links (see above)
 - [x] Link test for the framebuffer: `AppleIntelTGLGraphicsFramebuffer` + `AppleIntelTGLCompat` link together into an aux KC on 26.7.1
 - [x] Load-command patch + impostor on the TGL MTLDriver (`tools/patch-mtldriver.py`, Result 3)
-- [ ] OCLP fork: install the renamed `AppleIntelTGLGraphics` + framebuffer + TGLCompat on Tahoe (see CLAUDE.md for the safety net)
+- [ ] WhateverXe: Tahoe 25G241 kernel path (Result 4)
+- [ ] Audit virtual calls from the TGL kexts into non-subclassed kernel classes
+- [ ] Payload `11.0 20A2314a-25` (patched MTLDriver + `AppleIntelTGLImpostor.dylib`) into a Universal-Binaries.dmg for the OCLP branch
+- [ ] First install via OCLP (see CLAUDE.md for the safety net)
 
 ## Risks
 - The impostor is closed source and tuned for Monterey drivers. If Big Sur 11.0 structs differ from it, we need our own swizzle shim.

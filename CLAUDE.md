@@ -42,7 +42,9 @@ Collaborators: David-Birk (repo owner), bspid67 (same laptop). Discussion: GitHu
 - [ ] Link test for the framebuffer together with `AppleIntelTGLCompat`
 - [x] MTLDriver: IOKit → impostor via `tools/patch-mtldriver.py` (in place, because of the header code cave). Loads on Tahoe (dlopen test)
 - [x] Framebuffer + `AppleIntelTGLCompat` link test (both link): `sudo tools/link-test.sh --together …/AppleIntelTGLCompat.kext …/AppleIntelTGLGraphicsFramebuffer.kext`
-- [ ] OCLP fork: add `0x46A8` to `intel_xe.py` `DEVICE_IDS`, relax `native_os()` for Tahoe, install the patched MTLDriver + `AppleIntelTGLImpostor.dylib` (SKL 12.5-25 impostor)
+- [x] OCLP: local branch `tahoe-adlp` in `~/dev/OpenCore-Legacy-Patcher` (b00t0x `mod`): 46A8, 25G241, Tahoe payload list. Not pushed, no fork yet
+- [ ] **Blocker:** WhateverXe only activates on the exact 20G1443 kernel (`XE::selectProfile`, `adlnKernelReady`). Needs a 25G241 path; see TAHOE-PORT.md "Result 4"
+- [ ] Do not install anything until WhateverXe has that path
 
 ## Working data (not in the repo)
 `~/dev/xe-research/`: `tahoe/` (collect-tahoe.sh output, `kexts/` and `bootkexts/` extracted from the KCs), `tgl/` (20A2314a binaries from b00t0x/PatcherSupportPkg), `skl/` (SKL 12.5-23.4), `patched/` (renamed TGL kext, patched MTLDriver bundle, `AppleIntelTGLImpostor.dylib`), `tgl/bundles/` (full 20A2314a bundles incl. TGLCompat).
