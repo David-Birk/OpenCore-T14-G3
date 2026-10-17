@@ -39,7 +39,7 @@ The SMBIOS values in `EFI/OC/config.plist` → `PlatformInfo > Generic` are **pl
 Generate your own `MLB`, `SystemSerialNumber` and `SystemUUID` for `MacBookPro16,2` with
 [GenSMBIOS](https://github.com/corpnewt/GenSMBIOS), and set `ROM` to your NIC's MAC address.
 Never share your own values publicly.
-
+Ontop, use the publicly available MacOS Recovery Image Downloader tool, and but the the to files in a folder "com.applerecovery.boot" on the root of your efi partition, e.g. a usb stick.
 ## Credits
 
 [Acidanthera](https://github.com/acidanthera) (OpenCore, Lilu, VirtualSMC, …), [OpenIntelWireless](https://github.com/OpenIntelWireless), [VoodooI2C](https://github.com/VoodooI2C), [USBToolBox](https://github.com/USBToolBox) and the [Dortania guides](https://dortania.github.io/).
