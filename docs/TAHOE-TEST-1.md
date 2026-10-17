@@ -60,7 +60,7 @@ Useful properties: `N97Admission`, `N97NativeStartAllowed`, `N97NativeKernelRead
 
 ## Rollback, worst case first
 
-1. **macOS does not boot:** boot Arch, then `cp /efi/EFI/OC/config.plist.bak-xe /efi/EFI/OC/config.plist`. WhateverXe is disabled again; without it the TGL kexts do not attach to 46A8.
+1. **macOS does not boot:** boot Arch, then `python3 /efi/…/apply-xe-config.py /efi/EFI/OC/config.plist --safe` (or add `-x` to boot-args by hand). In Safe Mode the auxiliary kernel collection is not loaded, so no TGL kext runs; revert the root patches from there. **Do not** just disable WhateverXe once the framebuffer matches 46A8 (payload since attempt 2): the raw donor framebuffer would then start without WhateverXe's fixes.
 2. **Revert root patches:** in macOS, `sudo PYTHONPATH=. .venv/bin/python OpenCore-Patcher-GUI.command --unpatch_sys_vol`, or OCLP "Revert Root Patches". This returns to the sealed snapshot.
 3. Restore the full ESP from `~/EFI-backup-*` if needed.
 
@@ -73,3 +73,18 @@ Useful properties: `N97Admission`, `N97NativeStartAllowed`, `N97NativeKernelRead
 - `N97GTTopologyReady = No` (status 4, ProfileMismatch): `resourcesGT2` requires L3 fuse 0, the hardware reads `0x88`. If set bits are disabled banks (as the ADL-N branch reads `0xF0` = 4 banks), 6 of 8 banks are enabled. The bank count feeds the donor's URB/L3 setup (`urbReplaceAlderLakeN[17]`) and capability checks, so fix it only with a verified decoding (Linux `xe`/`i915`). This affects acceleration only, which stays fail-closed on Tahoe.
 - `N97NativePreflight = No`, `N97NativeStartAllowed = No` (expected: GT topology, no MMIO routing on Tahoe; lid was open).
 - OCLP detection afterwards: Intel Xe-LP, no validation blockers (`tools/oclp-detect.py`).
+
+### Step 3, attempt 1 (2026-10-17 15:42): boots, but the TGL kexts do not load
+- Booted with BIOS boot display = HDMI, lid open: macOS 1080p on HDMI, stable. `system_profiler`: "No Kext Loaded", VRAM 7 MB, so the firmware boot framebuffer is driving it.
+- WhateverXe: `N97NativeReservedGGTT = Yes` and the HDMI boot connector is now recognized (`N97NativeBootConnector`). `N97NativePreflight` is still No (GT topology, L3 fuse).
+- The auxiliary KC is loaded (`kernelmanagerd`: "Loading Aux KC"). All 7 aux kexts, including Apple-signed ones, log "invalid codeful kernel extension in the restricted lookup table". That is noise here (SIP off), not the cause.
+- **Causes:**
+  1. The donor framebuffer's `N97Display13` personality matches ADL-N `46D0`–`46D4` only. Nothing matches 46A8. (Lilu's `onKextLoadForce` only registers a callback; it does not load anything.)
+  2. `AppleIntelTGLCompat::tglStart` had its own exact-kernel gate (20A2314a/20G1443), so the provider the framebuffer links against fails on Tahoe.
+  3. TGLCompat carried `OSBundleRequired = Root`; OCLP only relabels `com.apple.*` kexts to `Auxiliary`, and in doing so breaks their signature (`-67030`, Info.plist modified).
+- **Fixes for attempt 2:**
+  - WhateverXe `a1a926b`: TGLCompat starts on 25G241 (`providerKernel`).
+  - Payload: framebuffer with `0x46a88086` in `N97Display13`, TGLCompat and framebuffer pre-labelled `Auxiliary` with valid ad-hoc signatures (code sections unchanged).
+  - Accelerator unchanged (no 46A8 match): display-only.
+  - OCLP `925bce3`. WhateverXe's Display13 start wrapper stays fail-closed (start returns false unless ~20 readiness checks pass).
+- Attempt 2 needs: `--unpatch_sys_vol`, reboot, `--patch_sys_vol`, reboot.

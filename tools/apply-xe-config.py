@@ -3,6 +3,9 @@
 
 Shows the changes by default; --write applies them and keeps CONFIG.bak-xe.
 --revert restores the iGPU-disabled state (-igfxvesa, WhateverXe disabled).
+--safe / --unsafe add / remove -x (Safe Mode: the auxiliary kernel collection,
+and with it every root-patched TGL kext, is not loaded). Works from Arch:
+  python3 apply-xe-config.py /efi/EFI/OC/config.plist --safe
 
 Changes:
   Kernel > Add   WhateverXe.kext right after Lilu (enabled)
@@ -12,9 +15,9 @@ Changes:
                  (framebuffer-patch-enable 1, framebuffer-stolenmem 0x03C00000)
 
 WhateverXe.kext itself must be copied to EFI/OC/Kexts separately.
-Usage: apply-xe-config.py CONFIG.plist [--write | --revert]
+Usage: apply-xe-config.py CONFIG.plist [--write | --revert | --safe | --unsafe]
 """
-import plistlib, shutil, sys
+import os, plistlib, shutil, sys
 
 NVRAM = '7C436110-AB2A-4BBB-A880-FE41995C9F82'
 IGPU = 'PciRoot(0x0)/Pci(0x2,0x0)'
@@ -65,15 +68,30 @@ def apply(c, revert):
     return log
 
 
+def safe_mode(c, on):
+    nv = c['NVRAM']['Add'][NVRAM]
+    old = nv['boot-args'].split()
+    new = [a for a in old if a != '-x'] + (['-x'] if on else [])
+    if new == old:
+        return []
+    nv['boot-args'] = ' '.join(new)
+    return [f'boot-args: {" ".join(old)}\n        -> {" ".join(new)}']
+
+
 def main(path, mode=None):
     c = plistlib.load(open(path, 'rb'))
-    log = apply(c, mode == '--revert')
+    if mode in ('--safe', '--unsafe'):
+        log = safe_mode(c, mode == '--safe')
+    else:
+        log = apply(c, mode == '--revert')
     print('\n'.join(log) or 'no changes')
-    if mode in ('--write', '--revert') and log:
-        shutil.copy2(path, path + '.bak-xe')
+    if mode in ('--write', '--revert', '--safe', '--unsafe') and log:
+        # Keep the first backup: it is the pre-WhateverXe config the rollback restores.
+        if not os.path.exists(path + '.bak-xe'):
+            shutil.copy2(path, path + '.bak-xe')
         with open(path, 'wb') as f:
             plistlib.dump(c, f)
-        print(f'written; backup at {path}.bak-xe')
+        print(f'written; original kept at {path}.bak-xe')
 
 
 if __name__ == '__main__':
