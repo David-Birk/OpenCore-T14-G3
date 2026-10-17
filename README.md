@@ -3,7 +3,7 @@
 OpenCore EFI for the ThinkPad T14 Gen 3 (Intel, Alder Lake), booting **macOS Tahoe**.
 
 > ⚠️ Work in progress. The iGPU (Iris Xe) is **not** accelerated – macOS runs on a VESA framebuffer (`-igfxvesa`), so the UI is laggy.
-> The long-term goal of this repo is to explore Iris Xe support – see [docs/RESEARCH.md](docs/RESEARCH.md).
+> The long-term goal of this repo is to explore Iris Xe support – see [docs/RESEARCH.md](docs/RESEARCH.md) and [docs/TAHOE-PORT.md](docs/TAHOE-PORT.md).
 
 ## Hardware
 
