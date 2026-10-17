@@ -103,12 +103,30 @@ WhateverXe (`adl-p`) is qualified for exactly one kernel, Big Sur 20G1443 (`Darw
 
 OCLP side prepared on local branch `tahoe-adlp` of the b00t0x OCLP fork: adds `0x46A8`, qualifies 25G241, and installs the kexts plus the patched Metal driver and impostor from a new payload folder `11.0 20A2314a-25`. **Do not install until WhateverXe has a Tahoe path.**
 
+## Result 5: Big Sur 20G1443 vs. Tahoe 25G241 (kernel and families)
+
+Source: Big Sur 11.7.11 (20G1443) InstallAssistant, kernel and kexts extracted from the OTA payload. The kernel version string matches WhateverXe's 20G1443 string exactly. WhateverXe already handles 20A2314a→20G1443 differences, so 20G1443 is the right baseline.
+
+**Vtables.**
+- Kernel: 125 of 130 common classes identical slot for slot. Different: `IOUserServer`, `IOPerfControlClient`, `IOServiceMessageUserNotification`, `OSKext`, `IODTNVRAM`. The TGL kexts use none of them.
+- Identical: everything TGL calls into, including `IOService`, `IORegistryEntry`, all memory descriptors, event sources, `IOWorkLoop`, `IOCommandGate`, `IORangeAllocator`, `OS*` containers, IOReporter and `IODTPlatformExpert` (so `writeNVRAMProperty` stays at `+0x9E8`).
+- IOGraphicsFamily (27 classes, incl. `IOFramebuffer`) and IOACPIFamily: identical.
+- IOPCIFamily, IOSurface, IOAcceleratorFamily2: the only differences are reserved slots that later got methods (append-only, compatible) and signature changes in classes TGL does not call.
+
+**Object sizes.** Every IOAcceleratorFamily2 parent TGL subclasses has the same size on 20G1443 and Tahoe. This confirms Result 2 directly. Sizes changed only for classes TGL uses without subclassing: `IOAccelDisplayPipeTransaction2` (0x1A0→0x1B8), `IOSurface` (0x408→0x3E0), fence/event and IOPCI bridge classes. TGL reads the first two only through out-of-line accessors (`getPlane*`, `getTransaction*`, `IOSurface::getPlane*`), so the layout change does not reach it.
+
+→ No kernel- or family-ABI blocker between 20G1443 and Tahoe for the TGL kexts. Remaining kernel-specific work is WhateverXe's private `pmap_enter_options` routing.
+
+(Tooling: `tools/vtables.py` now also decodes vtables inside a KC-extracted kernel, whose pointers are already absolute.)
+
 ## Next steps
 - [x] `sudo tools/link-test.sh`: the stock kext links (see above)
 - [x] Link test for the framebuffer: `AppleIntelTGLGraphicsFramebuffer` + `AppleIntelTGLCompat` link together into an aux KC on 26.7.1
 - [x] Load-command patch + impostor on the TGL MTLDriver (`tools/patch-mtldriver.py`, Result 3)
-- [ ] WhateverXe: Tahoe 25G241 kernel path (Result 4)
-- [ ] Audit virtual calls from the TGL kexts into non-subclassed kernel classes
+- [x] WhateverXe: qualify 25G241 for the Display13 path, recovery and NVRAM fix (`tahoe` branch, 3cdf401)
+- [ ] WhateverXe: port the `pmap_enter_options` MMIO routing to 25G241 (enables acceleration)
+- [ ] Display-only test boot (acceleration stays fail-closed without the routing)
+- [x] Audit virtual calls from the TGL kexts into non-subclassed kernel classes (Result 5)
 - [ ] Payload `11.0 20A2314a-25` (patched MTLDriver + `AppleIntelTGLImpostor.dylib`) into a Universal-Binaries.dmg for the OCLP branch
 - [ ] First install via OCLP (see CLAUDE.md for the safety net)
 

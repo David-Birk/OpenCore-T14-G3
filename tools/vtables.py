@@ -96,6 +96,8 @@ class Image:
             v = read_q(self.info, addr)
             if not v:
                 return None
+            if v >> 40 == 0xFFFFFF:  # already an absolute kernel address (fixups applied)
+                return self.boot.get(v) or self.sys.get(v, f'abs+{v:#x}')
             target, level = v & 0x3FFFFFFF, (v >> 30) & 3
             if level == 0:
                 return self.boot.get(BOOT_KC_BASE + target, f'boot+{target:#x}')
