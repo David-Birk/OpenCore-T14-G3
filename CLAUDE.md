@@ -49,7 +49,8 @@ Collaborators: David-Birk (repo owner), bspid67 (same laptop). Discussion: GitHu
 - [ ] Display-only test boot, runbook `docs/TAHOE-TEST-1.md`. **State 2026-10-17:**
   - [x] Step 0: FileVault decryption started (`fdesetup status`; must read "FileVault is Off" before the root patch). ESP backups: `~/EFI-backup-20261017` (full) and `/Volumes/EFI/OC-backup-20261017` (= `/efi/OC-backup-20261017` in Arch)
   - [x] Step 1: WhateverXe 0.2.3 loads on 25G241, `N97Admission = Yes`, VDBOX/VEBOX fuse confirmed. FileVault is off. Results in TAHOE-TEST-1.md
-  - [ ] Step 2: root patch with the OCLP branch (venv `.venv`, Python 3.12 from `~/dev/xe-research/bin/py312`). `tools/oclp-detect.py` shows no blockers. Needs the user's go-ahead
+  - [x] Step 2: root patch done 2026-10-17 15:34 (`sudo PYTHONPATH=. .venv/bin/python OpenCore-Patcher-GUI.command --patch_sys_vol`). Aux KC contains AppleIntelTGLGraphics, …Framebuffer, AppleIntelTGLCompat. Running from source needed a user edit in OCLP `support/subprocess_wrapper.py` (run directly when root and the privileged helper is absent; uncommitted). Revert: `--unpatch_sys_vol`
+  - [ ] Step 3: test boot (HDMI, lid closed or BIOS boot display = HDMI). **Afterwards collect:** `log show --last boot --predicate 'sender == "WhateverXe" OR sender CONTAINS "AppleIntelTGL"'`, `ioreg -lw0 | grep -E '"(N97|XELP|TGL)'`, `kmutil showloaded --list-only | grep -i tgl`, `system_profiler SPDisplaysDataType`
 - [ ] GT topology: L3 fuse `0x9118` reads `0x88` on the T14 G3; `resourcesGT2` expects 0 → ProfileMismatch. Verify the decoding (Linux xe/i915) before changing it; affects acceleration only
 
 ## Working data (not in the repo)
