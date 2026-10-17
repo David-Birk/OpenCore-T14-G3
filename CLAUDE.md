@@ -35,15 +35,17 @@ Collaborators: David-Birk (repo owner), bspid67 (same laptop). Discussion: GitHu
 
 ## Next steps (on Tahoe)
 - [x] Setup: Xcode is installed. Homebrew no longer supports Intel Macs, so `ipsw` is the standalone release binary in `~/dev/xe-research/bin/ipsw`
-- [ ] Clone the WhateverXe fork (`adl-p`), put `MacKernelSDK/` (acidanthera) and a `Lilu.kext/` debug build in its root, run `python3 tools/test.py` (includes `tests/alderlake_p.cpp`)
+- [x] WhateverXe `adl-p` cloned to `~/dev/WhateverXe` (MacKernelSDK + Lilu 1.7.2 DEBUG in its root). `python3 tools/test.py`: 55/55 after fixing `tests/device_selection.cpp` for the 0x0C stepping. `python3 tools/build.py` builds. Native replay tests need the original Apple-signed 20A2314a binaries (SHA-pinned); the PatcherSupportPkg copies don't match
 - [x] Extract IOAcceleratorFamily2 + ICL/KBL from the system KC and compare vtables/sizes (`tools/vtables.py`)
 - [x] Decide: **no change needed**, kmutil vtable patching handles the renamed slots (`tools/rename-imports.py` stays as a fallback)
 - [x] `sudo tools/link-test.sh` (kmutil link against the live KCs, installs nothing): accelerator links
 - [ ] Link test for the framebuffer together with `AppleIntelTGLCompat`
-- [ ] OCLP fork: add `0x46A8` to `intel_xe.py` `DEVICE_IDS`, relax `native_os()` for Tahoe, MTLDriver with the impostor load command
+- [x] MTLDriver: IOKit → impostor via `tools/patch-mtldriver.py` (in place, because of the header code cave). Loads on Tahoe (dlopen test)
+- [ ] Framebuffer + `AppleIntelTGLCompat` link test: `sudo tools/link-test.sh --together …/AppleIntelTGLCompat.kext …/AppleIntelTGLGraphicsFramebuffer.kext`
+- [ ] OCLP fork: add `0x46A8` to `intel_xe.py` `DEVICE_IDS`, relax `native_os()` for Tahoe, install the patched MTLDriver + `AppleIntelTGLImpostor.dylib` (SKL 12.5-25 impostor)
 
 ## Working data (not in the repo)
-`~/dev/xe-research/`: `tahoe/` (collect-tahoe.sh output, `kexts/` and `bootkexts/` extracted from the KCs), `tgl/` (20A2314a binaries from b00t0x/PatcherSupportPkg), `skl/` (SKL 12.5-23.4), `patched/` (renamed TGL kext).
+`~/dev/xe-research/`: `tahoe/` (collect-tahoe.sh output, `kexts/` and `bootkexts/` extracted from the KCs), `tgl/` (20A2314a binaries from b00t0x/PatcherSupportPkg), `skl/` (SKL 12.5-23.4), `patched/` (renamed TGL kext, patched MTLDriver bundle, `AppleIntelTGLImpostor.dylib`), `tgl/bundles/` (full 20A2314a bundles incl. TGLCompat).
 
 ## Rules
 - **No `Co-Authored-By` lines** in commits. Commit identity: `David-Birk` with the GitHub noreply address.

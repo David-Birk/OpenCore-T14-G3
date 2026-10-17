@@ -77,10 +77,20 @@ The reserved slots were filled with new methods; TGL never overrides them, so bi
 
 Tahoe also keeps the userspace drivers (`…MTLDriver`, `…GLDriver`) only in the dyld shared cache (`/System/Volumes/Preboot/Cryptexes/OS/System/Library/dyld/`); extract with `ipsw dyld extract` when comparing them.
 
+## Result 3: Metal driver loads on Tahoe
+
+**Impostor.** OCLP's SKL 12.5-25 MTLDriver differs from 12.5 only in the IOKit load command (→ `impostor.dylib`); `__text` is identical. The impostor hooks Metal.framework internals (`MTL*DescriptorInternal _descriptorPrivate`, `-[MTLTextureDescriptorInternal validateWithDevice:]`, `-[_MTLDevice supportsFamily:]`, `MTLIOAccelDevice`) plus app workarounds; nothing in it is SKL-specific. TGL's `MTLIGAccelDevice` subclasses the same `MTLIOAccelDevice`.
+
+**Code cave.** The 20A2314a MTLDriver from PatcherSupportPkg has injected code in the Mach-O header padding (`0x10d0`–`0x1ee7`, entered by `jmp 0x10d0` at the start of `__GLOBAL__sub_I_IntelTelemetryShared.cpp`). The load commands end exactly at `0x10d0`, so **they must not grow**: `install_name_tool -change` to the long bundle path overwrites the cave and the driver dies with SIGILL in its initializer. `tools/patch-mtldriver.py` rewrites the IOKit path inside the existing 88-byte command instead (≤ 63 characters). Default target: `/System/Library/Extensions/AppleIntelTGLImpostor.dylib`.
+
+**Load test** (non-installing, on 26.7.1): `dlopen` of the patched driver with the SKL 12.5-25 impostor succeeds. All imports bind against Tahoe's frameworks, the impostor and the driver's initializers run, and `MTLIGAccelDevice` registers as a subclass of `MTLIOAccelDevice`. Not tested yet: device creation, which needs the kernel driver.
+
+**Still open:** the impostor's `descriptorPrivate` layout fixes were written for Monterey (12.5) drivers. The 11.0 driver may read those structs at different offsets. That shows up only when the first pipeline or texture is created.
+
 ## Next steps
 - [x] `sudo tools/link-test.sh`: the stock kext links (see above)
 - [ ] Link test for the framebuffer (needs `AppleIntelTGLCompat` in the same collection)
-- [ ] Load-command patch + impostor on the TGL MTLDriver
+- [x] Load-command patch + impostor on the TGL MTLDriver (`tools/patch-mtldriver.py`, Result 3)
 - [ ] OCLP fork: install the renamed `AppleIntelTGLGraphics` + framebuffer + TGLCompat on Tahoe (see CLAUDE.md for the safety net)
 
 ## Risks
