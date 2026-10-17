@@ -46,7 +46,7 @@ Collaborators: David-Birk (repo owner), bspid67 (same laptop). Discussion: GitHu
 - [x] WhateverXe `tahoe` branch (pushed): exact kernel identity table, 25G241 admitted for Display13/recovery/NVRAM fix. 56/56 tests
 - [x] Big Sur 20G1443 vs Tahoe kernel/family ABI: no blocker (TAHOE-PORT.md "Result 5"). Big Sur files in `~/dev/xe-research/bigsur/`
 - [ ] Port WhateverXe's `pmap_enter_options` MMIO routing to 25G241. Until then acceleration stays fail-closed on Tahoe
-- [ ] Display-only test boot: needs the OCLP payload DMG, config changes and the user's go-ahead
+- [ ] Display-only test boot: everything prepared, runbook `docs/TAHOE-TEST-1.md`. Blocked by FileVault (OCLP refuses root patches); needs the user's go-ahead
 
 ## Working data (not in the repo)
 `~/dev/xe-research/`: `tahoe/` (collect-tahoe.sh output, `kexts/` and `bootkexts/` extracted from the KCs), `tgl/` (20A2314a binaries from b00t0x/PatcherSupportPkg), `skl/` (SKL 12.5-23.4), `patched/` (renamed TGL kext, patched MTLDriver bundle, `AppleIntelTGLImpostor.dylib`), `tgl/bundles/` (full 20A2314a bundles incl. TGLCompat).

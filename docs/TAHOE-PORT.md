@@ -125,9 +125,9 @@ Source: Big Sur 11.7.11 (20G1443) InstallAssistant, kernel and kexts extracted f
 - [x] Load-command patch + impostor on the TGL MTLDriver (`tools/patch-mtldriver.py`, Result 3)
 - [x] WhateverXe: qualify 25G241 for the Display13 path, recovery and NVRAM fix (`tahoe` branch, 3cdf401)
 - [ ] WhateverXe: port the `pmap_enter_options` MMIO routing to 25G241 (enables acceleration)
-- [ ] Display-only test boot (acceleration stays fail-closed without the routing)
+- [ ] Display-only test boot: runbook in `docs/TAHOE-TEST-1.md`
 - [x] Audit virtual calls from the TGL kexts into non-subclassed kernel classes (Result 5)
-- [ ] Payload `11.0 20A2314a-25` (patched MTLDriver + `AppleIntelTGLImpostor.dylib`) into a Universal-Binaries.dmg for the OCLP branch
+- [x] Payload DMG with `11.0 20A2314a-25` (`tools/build-payload.sh`): patched MTLDriver, impostor, ADL-P-capable TGLCompat
 - [ ] First install via OCLP (see CLAUDE.md for the safety net)
 
 ## Risks
