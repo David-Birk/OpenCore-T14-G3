@@ -71,12 +71,15 @@ The reserved slots were filled with new methods; TGL never overrides them, so bi
 
 **Object sizes.** Sizes from the `MetaClass` constructors (`OSMetaClass(name, super, size)`). For every TGL subclass, the lowest own-field offset it touches is exactly the size of the Tahoe parent (e.g. `IntelAccelerator` starts at `0xdd8` = `sizeof(IOGraphicsAccelerator2)`; `IGAccelSurface` is `0x13b0` = `sizeof(IOAccelLegacySurface)` with no own fields). Cross-check: SKL 12.5 (runs on Tahoe) vs. Tahoe KBL shows the same own-field offsets. → No parent class grew or shrank between 11.0 and Tahoe. (No 11.0 IOAcceleratorFamily2 binary was available, so this is inferred from field accesses, not a header diff.)
 
-**→ Option 1 (symbol renaming) is sufficient.** `tools/rename-imports.py` appends the 5 new names to the string table and repoints the symbol entries; `__TEXT`/`__DATA` stay byte-identical, so WhateverXe's offsets stay valid. After the patch every import resolves against Tahoe's KCs.
+**→ No binary change needed.** All 5 references are vtable entries only (no direct calls). kmutil, like kxld before it, patches inherited vtable slots from the parent's vtable, so they never have to resolve by name. Verified with `tools/link-test.sh`: the **unmodified** 20A2314a `AppleIntelTGLGraphics` links into an auxiliary KC against the live 26.7.1 boot/system KCs, and the 5 slots point at Tahoe's `getAssignedGPUVirtualAddressLength`, `dirtyBufferRange`, `dirtyVendorCommand`, `initSurfaceBuffer(IOAccelSurface*…)` and `createDrawable(IOAccelSurface*…)`.
+
+`tools/rename-imports.py` (renames the 5 imports by appending to the string table) produces a byte-identical linked result. Keep it only as a fallback for loaders without vtable patching.
 
 Tahoe also keeps the userspace drivers (`…MTLDriver`, `…GLDriver`) only in the dyld shared cache (`/System/Volumes/Preboot/Cryptexes/OS/System/Library/dyld/`); extract with `ipsw dyld extract` when comparing them.
 
 ## Next steps
-- [ ] `sudo tools/link-test.sh` on the patched and original kext: kmutil link against the live KCs (patched must link, original must fail on the 5 symbols)
+- [x] `sudo tools/link-test.sh`: the stock kext links (see above)
+- [ ] Link test for the framebuffer (needs `AppleIntelTGLCompat` in the same collection)
 - [ ] Load-command patch + impostor on the TGL MTLDriver
 - [ ] OCLP fork: install the renamed `AppleIntelTGLGraphics` + framebuffer + TGLCompat on Tahoe (see CLAUDE.md for the safety net)
 
