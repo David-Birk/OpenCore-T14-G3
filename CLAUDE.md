@@ -41,7 +41,7 @@ Collaborators: David-Birk (repo owner), bspid67 (same laptop). Discussion: GitHu
 - [x] `sudo tools/link-test.sh` (kmutil link against the live KCs, installs nothing): accelerator links
 - [ ] Link test for the framebuffer together with `AppleIntelTGLCompat`
 - [x] MTLDriver: IOKit → impostor via `tools/patch-mtldriver.py` (in place, because of the header code cave). Loads on Tahoe (dlopen test)
-- [ ] Framebuffer + `AppleIntelTGLCompat` link test: `sudo tools/link-test.sh --together …/AppleIntelTGLCompat.kext …/AppleIntelTGLGraphicsFramebuffer.kext`
+- [x] Framebuffer + `AppleIntelTGLCompat` link test (both link): `sudo tools/link-test.sh --together …/AppleIntelTGLCompat.kext …/AppleIntelTGLGraphicsFramebuffer.kext`
 - [ ] OCLP fork: add `0x46A8` to `intel_xe.py` `DEVICE_IDS`, relax `native_os()` for Tahoe, install the patched MTLDriver + `AppleIntelTGLImpostor.dylib` (SKL 12.5-25 impostor)
 
 ## Working data (not in the repo)

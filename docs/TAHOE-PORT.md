@@ -89,7 +89,7 @@ Tahoe also keeps the userspace drivers (`…MTLDriver`, `…GLDriver`) only in t
 
 ## Next steps
 - [x] `sudo tools/link-test.sh`: the stock kext links (see above)
-- [ ] Link test for the framebuffer (needs `AppleIntelTGLCompat` in the same collection)
+- [x] Link test for the framebuffer: `AppleIntelTGLGraphicsFramebuffer` + `AppleIntelTGLCompat` link together into an aux KC on 26.7.1
 - [x] Load-command patch + impostor on the TGL MTLDriver (`tools/patch-mtldriver.py`, Result 3)
 - [ ] OCLP fork: install the renamed `AppleIntelTGLGraphics` + framebuffer + TGLCompat on Tahoe (see CLAUDE.md for the safety net)
 
