@@ -30,16 +30,19 @@ Collaborators: David-Birk (repo owner), bspid67 (same laptop). Discussion: GitHu
    - OCLP runs SKL drivers from 12.5 on Tahoe; the only change to the MTLDriver is the load command `IOKit` → `impostor.dylib` (Moraea Metal shim).
    - TGL MTLDriver and framebuffer have no critical extra imports compared with SKL 12.5.
    - TGL accelerator: kernel imports resolve against Tahoe 26.7.1 except 3 symbols, which SKL also uses (they come from IOAcceleratorFamily2).
-   - **Main open question:** TGL subclasses `IOAccelLegacySurface`, `IOAccelLegacyDisplayPipe` and `IOAccelLegacyDisplayMachine` (Big Sur names). From 12.5 on these are `IOAccelSurface`/`IOAccelDisplayPipe`/`IOAccelDisplayMachine`. We need to check whether object size and vtable layout in Tahoe's IOAcceleratorFamily2 match.
+   - **Resolved:** Tahoe still exports `IOAccelLegacySurface`/`DisplayPipe`/`DisplayMachine`. All inherited vtables and parent object sizes match 11.0. Only 5 imports were renamed (same vtable slot); `tools/rename-imports.py` fixes them without moving code. Details: TAHOE-PORT.md "Result 2".
 3. Known hurdle for the first boot: WhateverXe's Display13 bootstrap expects only HDMI active on pipe A. The GOP lights up eDP → test with the **lid closed + HDMI**.
 
 ## Next steps (on Tahoe)
-- [ ] Setup: Xcode + Command Line Tools, `brew install blacktop/tap/ipsw`, clone this repo and the WhateverXe fork (`adl-p`), put `MacKernelSDK/` (acidanthera) and a `Lilu.kext/` debug build in the WhateverXe root
-- [ ] Run the WhateverXe tests: `python3 tools/test.py` (includes `tests/alderlake_p.cpp`)
-- [ ] Extract `IOAcceleratorFamily2` from `/System/Library/KernelCollections/SystemKernelExtensions.kc` (`ipsw kernel extract` / `ipsw macho info`) and compare its vtables against `IOAccelLegacy*` from the 20A2314a kext (tool: `tools/macho.py`)
-- [ ] Also extract Tahoe's `AppleIntelICLGraphics` (Gen11, same codebase as TGL) as an ABI reference
-- [ ] Decide: symbol renaming in the TGL kext vs. a shim kext vs. Lilu patches
+- [x] Setup: Xcode is installed. Homebrew no longer supports Intel Macs, so `ipsw` is the standalone release binary in `~/dev/xe-research/bin/ipsw`
+- [ ] Clone the WhateverXe fork (`adl-p`), put `MacKernelSDK/` (acidanthera) and a `Lilu.kext/` debug build in its root, run `python3 tools/test.py` (includes `tests/alderlake_p.cpp`)
+- [x] Extract IOAcceleratorFamily2 + ICL/KBL from the system KC and compare vtables/sizes (`tools/vtables.py`)
+- [x] Decide: **symbol renaming** (`tools/rename-imports.py`)
+- [ ] `sudo tools/link-test.sh` on the renamed kext (kmutil link against the live KCs, installs nothing)
 - [ ] OCLP fork: add `0x46A8` to `intel_xe.py` `DEVICE_IDS`, relax `native_os()` for Tahoe, MTLDriver with the impostor load command
+
+## Working data (not in the repo)
+`~/dev/xe-research/`: `tahoe/` (collect-tahoe.sh output, `kexts/` and `bootkexts/` extracted from the KCs), `tgl/` (20A2314a binaries from b00t0x/PatcherSupportPkg), `skl/` (SKL 12.5-23.4), `patched/` (renamed TGL kext).
 
 ## Rules
 - **No `Co-Authored-By` lines** in commits. Commit identity: `David-Birk` with the GitHub noreply address.

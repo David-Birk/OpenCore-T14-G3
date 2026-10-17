@@ -49,17 +49,39 @@ Tahoe ships kext executables only inside the kernel collections. Compared agains
 - **TGL framebuffer:** missing are only `AppleGraphicsDeviceControl` (its own kext) and `IOACPIPlatformDevice` (ACPI platform). Both are in the system KC. ✅ (to be confirmed)
 - → The kernel side is **not** a problem. Everything that is open lies in the **system KC** (IOAcceleratorFamily2, IOGraphicsFamily, AGDC, Intel GPU drivers).
 
-## Next step: system kernel collection
+## Result 2: system kernel collection (26.7.1, 25G241)
 
-`tools/collect-tahoe.sh` now also copies `SystemKernelExtensions.kc` to `/Volumes/EFI/xe-dump`. With it we can check the IOAccel classes:
+Kexts extracted with `ipsw kernel extract` (IOAcceleratorFamily2 487.4.4, IOGraphicsFamily 600, AGDC 8.1.12, ICL/KBL 24.0.5).
 
-With those we can check:
-- [ ] Which of the 83 symbols Tahoe exports, and which are missing
-- [ ] Vtable layout of `IOAccelSurface`/`DisplayPipe`/`DisplayMachine` in Tahoe vs. `IOAccelLegacy*` in 11.0
-- [ ] Tahoe ICL vs. 11.0 TGL: the two drivers come from the same codebase, so Tahoe's ICL is the best template for the new ABI
+**Tahoe still ships the legacy classes.** `IOAccelLegacySurface`, `IOAccelLegacyDisplayPipe` and `IOAccelLegacyDisplayMachine` are exported by Tahoe's IOAcceleratorFamily2 (metaclass, vtable, all methods), as subclasses of the renamed `IOAccelSurface`/`DisplayPipe`/`DisplayMachine`. The rename table above was a false alarm.
+
+**Imports.** Against boot KC + system KC, the TGL accelerator has exactly **5** unresolved imports, the framebuffer only the `AppleIntelFramebufferController`/`PortHAL`/`DisplayPath` symbols that `AppleIntelTGLCompat` provides.
+
+**Vtables** (`tools/vtables.py scan`): every vtable TGL inherits from Tahoe (42 class pairs in IOAcceleratorFamily2, plus `IOFramebuffer` 350 slots and `AppleGraphicsDeviceControl` 276 slots) has the same slot layout as in 11.0. The only differences are Tahoe pure virtuals that TGL implements and the 5 imports, which are the **same slot under a new name**:
+
+| Slot | TGL 11.0 imports | Tahoe exports |
+|---|---|---|
+| `IOAccelMemoryMap` [50] | `_RESERVEDIOAccelMemoryMap0()` | `getAssignedGPUVirtualAddressLength() const` |
+| `IOAccelResource2` [70] | `_RESERVEDIOAccelResource0()` | `dirtyBufferRange(u64, u64)` |
+| `IOAccelResource2` [71] | `_RESERVEDIOAccelResource1()` | `dirtyVendorCommand(u32, u64)` |
+| `IOAccelResource2` [35] | `initSurfaceBuffer(IOAccelLegacySurface*, …)` | `initSurfaceBuffer(IOAccelSurface*, …)` |
+| `IOGraphicsAccelerator2` [287] | `createDrawable(IOAccelLegacySurface*, …)` | `createDrawable(IOAccelSurface*, …)` |
+
+The reserved slots were filled with new methods; TGL never overrides them, so binding them to the Tahoe implementation is correct. `IOAccelLegacySurface*` → `IOAccelSurface*` is a base-class pointer, same ABI.
+
+**Object sizes.** Sizes from the `MetaClass` constructors (`OSMetaClass(name, super, size)`). For every TGL subclass, the lowest own-field offset it touches is exactly the size of the Tahoe parent (e.g. `IntelAccelerator` starts at `0xdd8` = `sizeof(IOGraphicsAccelerator2)`; `IGAccelSurface` is `0x13b0` = `sizeof(IOAccelLegacySurface)` with no own fields). Cross-check: SKL 12.5 (runs on Tahoe) vs. Tahoe KBL shows the same own-field offsets. → No parent class grew or shrank between 11.0 and Tahoe. (No 11.0 IOAcceleratorFamily2 binary was available, so this is inferred from field accesses, not a header diff.)
+
+**→ Option 1 (symbol renaming) is sufficient.** `tools/rename-imports.py` appends the 5 new names to the string table and repoints the symbol entries; `__TEXT`/`__DATA` stay byte-identical, so WhateverXe's offsets stay valid. After the patch every import resolves against Tahoe's KCs.
+
+Tahoe also keeps the userspace drivers (`…MTLDriver`, `…GLDriver`) only in the dyld shared cache (`/System/Volumes/Preboot/Cryptexes/OS/System/Library/dyld/`); extract with `ipsw dyld extract` when comparing them.
+
+## Next steps
+- [ ] `sudo tools/link-test.sh` on the patched and original kext: kmutil link against the live KCs (patched must link, original must fail on the 5 symbols)
 - [ ] Load-command patch + impostor on the TGL MTLDriver
+- [ ] OCLP fork: install the renamed `AppleIntelTGLGraphics` + framebuffer + TGLCompat on Tahoe (see CLAUDE.md for the safety net)
 
 ## Risks
 - The impostor is closed source and tuned for Monterey drivers. If Big Sur 11.0 structs differ from it, we need our own swizzle shim.
-- WhateverXe's binary patches use exact offsets in the 20A2314a binaries. Renaming symbols must not move code (only the string table / binding info), otherwise every offset breaks.
+- WhateverXe's binary patches use exact offsets in the 20A2314a binaries. Renaming symbols must not move code (only the string table / binding info), otherwise every offset breaks. (`rename-imports.py` only appends to the string table.)
+- Layout compatibility is inferred from field accesses; a runtime mismatch in a parent field would show up as a panic in IOAcceleratorFamily2 code.
 - Every iteration needs a test boot on the T14.

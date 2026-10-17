@@ -34,7 +34,12 @@ for k in IOAcceleratorFamily2 IOGraphicsFamily IOSurface IOPCIFamily \
          AppleIntelICLGraphics AppleIntelICLLPGraphicsFramebuffer \
          AppleIntelKBLGraphics AppleIntelKBLGraphicsFramebuffer; do
     copy "/System/Library/Extensions/$k.kext/Contents/MacOS/$k"
-    copy "/System/Library/Extensions/$k.kext/Contents/Info.plist"
+    # some kexts (IOGraphicsFamily) use a flat bundle without Contents/
+    if [ -e "/System/Library/Extensions/$k.kext/Contents" ]; then
+        copy "/System/Library/Extensions/$k.kext/Contents/Info.plist"
+    else
+        copy "/System/Library/Extensions/$k.kext/Info.plist"
+    fi
 done
 
 # Tahoe's native Gen11 Metal/GL drivers (closest relative of the TGL bundles)
