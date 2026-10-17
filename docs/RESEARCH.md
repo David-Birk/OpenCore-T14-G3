@@ -87,4 +87,4 @@ Forum threads:
 - [Dortania Debugging](https://dortania.github.io/OpenCore-Install-Guide/troubleshooting/debug.html)
 
 ## PCI BARs (macOS IORegistry, 2026-10-17)
-- iGPU `8086:46A8` rev `0x0C`: BAR0 (GTTMMADR) at `0x4000000000`, 16 MB; BAR2 (GMADR) 64-bit prefetchable at `0x40000000` region per `assigned-addresses`.
+- iGPU `8086:46A8` rev `0x0C` (`assigned-addresses`): BAR0 GTTMMADR `0x4010000000` (16 MB), BAR2 GMADR `0x4000000000` (256 MB, prefetchable), BAR4 I/O `0x2000` (64 B).
