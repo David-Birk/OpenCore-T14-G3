@@ -25,7 +25,7 @@ Collaborators: David-Birk (repo owner), bspid67 (same laptop). Discussion: GitHu
 | Alternative project | github.com/sgiammori/NootedGreen (TGL spoofing, Sonoma) |
 
 ## Status
-1. **`adl-p` commit f63a88e**: 46A8 rev 0x0C is admitted and goes through WhateverXe's Display13 path (shared with ADL-N) with its own GT2 profile (`GT::ADLPGT2`, 80/96 EU, 8 L3 banks). Not built or tested yet. **Unverified:** VDBOX/VEBOX fuse `0x000E00FA` (derived from Linux; a mismatch fails closed and publishes the real fuse value as an `N97*` ioreg property).
+1. **`adl-p` commit f63a88e**: 46A8 rev 0x0C is admitted and goes through WhateverXe's Display13 path (shared with ADL-N) with its own GT2 profile (`GT::ADLPGT2`, 80/96 EU, 8 L3 banks). Not built or tested yet. VDBOX/VEBOX fuse `0x000E00FA` **confirmed on hardware** (2026-10-17). L3 fuse reads `0x88`, which the GT2 profile does not accept yet.
 2. **Tahoe analysis** (`docs/TAHOE-PORT.md`):
    - OCLP runs SKL drivers from 12.5 on Tahoe; the only change to the MTLDriver is the load command `IOKit` → `impostor.dylib` (Moraea Metal shim).
    - TGL MTLDriver and framebuffer have no critical extra imports compared with SKL 12.5.
@@ -48,8 +48,9 @@ Collaborators: David-Birk (repo owner), bspid67 (same laptop). Discussion: GitHu
 - [ ] Port WhateverXe's `pmap_enter_options` MMIO routing to 25G241. Until then acceleration stays fail-closed on Tahoe
 - [ ] Display-only test boot, runbook `docs/TAHOE-TEST-1.md`. **State 2026-10-17:**
   - [x] Step 0: FileVault decryption started (`fdesetup status`; must read "FileVault is Off" before the root patch). ESP backups: `~/EFI-backup-20261017` (full) and `/Volumes/EFI/OC-backup-20261017` (= `/efi/OC-backup-20261017` in Arch)
-  - [ ] Step 1: user copies WhateverXe.kext to the ESP and runs `apply-xe-config.py --write`, then reboots. **After the reboot, check:** `kmutil showloaded --list-only | grep WhateverXe`, `log show --last boot --predicate 'sender == "WhateverXe"'`, and that macOS came up normally
-  - [ ] Step 2: once FileVault is off, root patch with the OCLP branch (venv `.venv`, Python 3.12 from `~/dev/xe-research/bin/py312`)
+  - [x] Step 1: WhateverXe 0.2.3 loads on 25G241, `N97Admission = Yes`, VDBOX/VEBOX fuse confirmed. FileVault is off. Results in TAHOE-TEST-1.md
+  - [ ] Step 2: root patch with the OCLP branch (venv `.venv`, Python 3.12 from `~/dev/xe-research/bin/py312`). `tools/oclp-detect.py` shows no blockers. Needs the user's go-ahead
+- [ ] GT topology: L3 fuse `0x9118` reads `0x88` on the T14 G3; `resourcesGT2` expects 0 → ProfileMismatch. Verify the decoding (Linux xe/i915) before changing it; affects acceleration only
 
 ## Working data (not in the repo)
 `~/dev/xe-research/`: `tahoe/` (collect-tahoe.sh output, `kexts/` and `bootkexts/` extracted from the KCs), `tgl/` (20A2314a binaries from b00t0x/PatcherSupportPkg), `skl/` (SKL 12.5-23.4), `patched/` (renamed TGL kext, patched MTLDriver bundle, `AppleIntelTGLImpostor.dylib`), `tgl/bundles/` (full 20A2314a bundles incl. TGLCompat).

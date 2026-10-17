@@ -63,3 +63,13 @@ Useful properties: `N97Admission`, `N97NativeStartAllowed`, `N97NativeKernelRead
 1. **macOS does not boot:** boot Arch, then `cp /efi/EFI/OC/config.plist.bak-xe /efi/EFI/OC/config.plist`. WhateverXe is disabled again; without it the TGL kexts do not attach to 46A8.
 2. **Revert root patches:** in macOS, `sudo PYTHONPATH=. .venv/bin/python OpenCore-Patcher-GUI.command --unpatch_sys_vol`, or OCLP "Revert Root Patches". This returns to the sealed snapshot.
 3. Restore the full ESP from `~/EFI-backup-*` if needed.
+
+## Results
+
+### Step 1 (2026-10-17): WhateverXe loaded on 25G241
+- Boots normally. New boot-args active; `org.b00t0x.WhateverXe (0.2.3)` loaded after Lilu 1.7.2.
+- `N97Admission = Yes`: 46A8 rev 0x0C (GT C0, display D0) admitted on Tahoe. VBT, OpRegion, firmware ports, stolen memory (GGC 705) and Display13 boot state read and published.
+- GT readout: forcewake acquired and released cleanly. Fuses: slice `0x1`, DSS `0x1F` (5 DSS), EU disable `0x0` (80 EU), L3 `0x9118 = 0x88`, VDBOX/VEBOX `0x9140 = 0x000E00FA`. **This confirms the VDBOX/VEBOX value from `adl-p` on hardware.**
+- `N97GTTopologyReady = No` (status 4, ProfileMismatch): `resourcesGT2` requires L3 fuse 0, the hardware reads `0x88`. If set bits are disabled banks (as the ADL-N branch reads `0xF0` = 4 banks), 6 of 8 banks are enabled. The bank count feeds the donor's URB/L3 setup (`urbReplaceAlderLakeN[17]`) and capability checks, so fix it only with a verified decoding (Linux `xe`/`i915`). This affects acceleration only, which stays fail-closed on Tahoe.
+- `N97NativePreflight = No`, `N97NativeStartAllowed = No` (expected: GT topology, no MMIO routing on Tahoe; lid was open).
+- OCLP detection afterwards: Intel Xe-LP, no validation blockers (`tools/oclp-detect.py`).
