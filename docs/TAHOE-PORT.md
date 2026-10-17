@@ -42,10 +42,16 @@ Because TGL **subclasses** these classes (constructors `C2`, vtables `__ZTV`, `g
 2. **Shim kext / Lilu** that provides the legacy classes as thin subclasses of the Tahoe classes.
 3. **WhateverXe/Lilu patches** for individual vtable slots.
 
-## Next step: Tahoe reference binaries
+## Result 1: Tahoe kernel (26.7.1, 25G241)
 
-`tools/collect-tahoe.sh` (run on Tahoe) copies the following to the EFI partition (`/Volumes/EFI/xe-dump`, ~60 MB):
-the kernel, `IOAcceleratorFamily2`, `IOGraphicsFamily`, `IOSurface`, `IOPCIFamily`, plus Tahoe's native **ICL (Gen11)** and KBL drivers as reference.
+Tahoe ships kext executables only inside the kernel collections. Compared against the boot KC (kernel, IOPCIFamily, IOSurface):
+- **TGL accelerator:** of 559 non-graphics imports, only 3 are missing (`___globalObjectIDCounter`, `___ktrace_enable_filter`, `___ktrace_kernel_enabled`). SKL 12.5 imports exactly the same three and runs on Tahoe, so they come from IOAcceleratorFamily2. ✅
+- **TGL framebuffer:** missing are only `AppleGraphicsDeviceControl` (its own kext) and `IOACPIPlatformDevice` (ACPI platform). Both are in the system KC. ✅ (to be confirmed)
+- → The kernel side is **not** a problem. Everything that is open lies in the **system KC** (IOAcceleratorFamily2, IOGraphicsFamily, AGDC, Intel GPU drivers).
+
+## Next step: system kernel collection
+
+`tools/collect-tahoe.sh` now also copies `SystemKernelExtensions.kc` to `/Volumes/EFI/xe-dump`. With it we can check the IOAccel classes:
 
 With those we can check:
 - [ ] Which of the 83 symbols Tahoe exports, and which are missing
