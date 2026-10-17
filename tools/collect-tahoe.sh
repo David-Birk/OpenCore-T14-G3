@@ -43,9 +43,11 @@ for b in AppleIntelICLGraphicsMTLDriver AppleIntelICLGraphicsGLDriver AppleIntel
     copy "/System/Library/Extensions/$b.bundle/Contents/Info.plist"
 done
 
-# Fallback if kext executables are only inside the kernel collection
-[ -e "$OUT/System/Library/Extensions/IOAcceleratorFamily2.kext/Contents/MacOS/IOAcceleratorFamily2" ] ||
-    copy /System/Library/KernelCollections/BootKernelExtensions.kc
+# Tahoe keeps kext executables only inside the kernel collections:
+# boot KC = kernel + early families, system KC = IOAcceleratorFamily2,
+# IOGraphicsFamily, AppleGraphicsDeviceControl and the Intel GPU drivers.
+copy /System/Library/KernelCollections/BootKernelExtensions.kc
+copy /System/Library/KernelCollections/SystemKernelExtensions.kc
 
 kmutil showloaded --list-only 2>/dev/null | grep -iE 'accel|graphics|intel|iosurface' > "$OUT/kmutil-loaded.txt" || true
 du -sh "$OUT"
